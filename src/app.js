@@ -327,8 +327,9 @@ setButtons();
 const initialEncode = params.get('encode') || params.get('backend') || 'webgpu';
 const initialDecode = params.get('decode') || params.get('backend') || 'webgpu';
 const portable = params.get('runtime') !== 'legacy';
-$('mlvc-encode-backend').value = params.get('mlvcEncode') === 'wasm' ? 'wasm' : 'webgpu';
-$('mlvc-decode-backend').value = params.get('mlvcDecode') === 'wasm' ? 'wasm' : 'webgpu';
+const mlvcDefaultBackend = resolution === 1080 ? 'wasm' : 'webgpu';
+$('mlvc-encode-backend').value = params.get('mlvcEncode') || mlvcDefaultBackend;
+$('mlvc-decode-backend').value = params.get('mlvcDecode') || mlvcDefaultBackend;
 $('neural-runtime').value = portable ? 'portable' : 'legacy';
 if (portable) {
   $('encode-backend').querySelector('option[value="wasm"]').textContent =
