@@ -1,0 +1,7 @@
+# Neural Codec — cross-device browser demo
+
+Camera demo with CBR, resolution controls, bitrate and PSNR statistics, and comparisons with H.264, H.265, AV1, VP8, and MLVC.
+
+The Neural Codec and MLVC each have separate GPU (WebGPU) and CPU (WebAssembly) encoder and decoder selectors. The Neural Codec also offers an experimental fixed-point cross-device runtime and the original floating-point runtime.
+
+Open `index.html` through HTTPS or a local HTTP server. GitHub Pages can serve this directory directly from the repository root.

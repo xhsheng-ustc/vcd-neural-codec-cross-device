@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Run and compare neural video codecs in your browser.">
+  <title>Neural Codec</title>
+  <link rel="stylesheet" href="./src/style.css">
+  <link rel="stylesheet" href="./src/comparison.css">
+</head>
+<body>
+  <header class="topbar"><div class="brand"><span class="mark">N</span><div><strong>Neural Codec</strong><small>Neural video coding · Browser demo</small></div></div><span class="tag">Runs in your browser</span></header>
+  <main>
+    <section class="intro"><div><h1>Neural video compression in your browser</h1><p>Our codec uses 26.75 KMAC/pixel, versus 65.20 KMAC/pixel for MLVC (41% of its complexity). In our evaluation, it also achieves better rate-distortion performance. Compare reconstructed video and measured bitrate below.</p></div><div class="statusbox"><span id="dot" class="dot"></span><span id="status">Loading model</span></div></section>
+    <section class="video-grid">
+      <article class="video-card"><div class="card-heading"><h2>Camera input</h2><span id="source-tag">Camera off</span></div><div class="stage"><video id="camera" autoplay muted playsinline hidden></video><canvas id="input-view" width="640" height="360"></canvas><span id="source-size" class="corner">SOURCE · 640 × 360</span></div></article>
+      <article class="video-card"><div class="card-heading"><h2>Our decoded video</h2><span id="frame-tag">Waiting for first frame</span></div><div class="stage"><canvas id="output-view" width="640" height="360"></canvas><span id="decoded-size" class="corner">DECODED · 640 × 360</span></div></article>
+      <article class="video-card hidden" id="comparison-card"><div class="card-heading"><h2 id="comparison-title">Comparison</h2><span id="compare-status">Waiting</span></div><div class="stage"><canvas id="comparison-view" width="640" height="360"></canvas><span id="comparison-size" class="corner">COMPARISON · 640 × 360</span></div></article>
+    </section>
+    <section class="toolbar"><div class="buttons"><button id="camera-start" class="primary">Start camera</button><button id="camera-stop" disabled>Stop camera</button></div></section>
+    <section class="lower"><div class="panel settings"><h2>Codec settings</h2>
+      <label>Video resolution<select id="resolution"><option value="360">360p · 640 × 360</option><option value="540" selected>540p · 960 × 540</option><option value="720">720p · 1280 × 720</option><option value="1080">1080p · 1920 × 1080</option></select></label>
+      <label>Neural runtime<select id="neural-runtime"><option value="portable" selected>Cross-device exact · experimental</option><option value="legacy">Original floating-point · faster</option></select></label>
+      <label>Encoder device<select id="encode-backend"><option value="webgpu">GPU · WebGPU</option><option value="wasm">CPU · WebAssembly</option></select></label>
+      <label>Decoder device<select id="decode-backend"><option value="webgpu">GPU · WebGPU</option><option value="wasm">CPU · WebAssembly</option></select></label>
+      <label id="mlvc-encoder-setting" class="hidden">MLVC encoder device<select id="mlvc-encode-backend"><option value="webgpu">GPU · WebGPU</option><option value="wasm">CPU · WebAssembly</option></select></label>
+      <label id="mlvc-decoder-setting" class="hidden">MLVC decoder device<select id="mlvc-decode-backend"><option value="webgpu">GPU · WebGPU</option><option value="wasm">CPU · WebAssembly</option></select></label>
+      <label>Rate mode<select id="rate-mode"><option value="cq">Fixed QP</option><option value="cbr" selected>CBR · target bitrate</option></select></label>
+      <label id="target-setting">Target bitrate (kbps)<input id="target-kbps" type="number" min="25" max="20000" step="25" value="100"></label>
+      <label id="qpi-setting" class="hidden">I-frame QP <output id="qpi-value">63</output><input id="qpi" type="range" min="0" max="63" value="63"></label>
+      <label id="qpp-setting" class="hidden">P-frame QP <output id="qpp-value">63</output><input id="qpp" type="range" min="0" max="63" value="63"></label>
+      <label>I-frame interval (frames)<input id="period" type="number" min="1" max="3000" value="150"></label>
+      <label>Compare codec<select id="compare-codec"><option value="">Off</option><option value="h264">H.264 / AVC</option><option value="hevc">H.265 / HEVC</option><option value="av1">AV1</option><option value="mlvc">MLVC · PSNR</option><option value="mlvc-perceptual">MLVC · Perceptual</option><option value="vp8">VP8</option></select></label>
+      <p class="fine">Our neural QP increases bitrate as it rises. Conventional codec QP works in the opposite direction. Higher resolutions may run below real-time speed.</p>
+      <p class="fine">MLVC encoder and decoder devices can be selected separately. At 1080p, running both neural codecs on GPU may exceed available memory.</p>
+      <p class="fine">Cross-device exact mode uses integer WebGPU shaders or WebAssembly for the quantized networks, with shared fixed-point feature operations. The remaining encoder-side networks use ONNX Runtime Web. CPU mode and I frames may run slowly.</p>
+    </div><div class="panel metrics"><h2>Our codec · live statistics</h2><div class="metric-grid">
+      <div><strong id="target-actual">—</strong><small>Target / actual · kbps at 30 FPS</small></div>
+      <div><strong id="bitrate">—</strong><small>Actual-time bitrate · kbps</small></div>
+      <div><strong id="bitrate-30">—</strong><small>30 FPS bitrate · kbps</small></div>
+      <div><strong id="fps">—</strong><small>Processed frames · FPS</small></div>
+      <div><strong id="encode-time">—</strong><small>Encode time · ms</small></div>
+      <div><strong id="decode-time">—</strong><small>Decode time · ms</small></div>
+      <div><strong id="frame-size">—</strong><small>Bitstream size · B</small></div>
+      <div><strong id="psnr-y">—</strong><small>Y PSNR · dB</small></div>
+      <div><strong id="psnr-u">—</strong><small>U PSNR · dB</small></div>
+      <div><strong id="psnr-v">—</strong><small>V PSNR · dB</small></div>
+      <div><strong id="frame-qp">—</strong><small>Frame QP</small></div>
+    </div><p class="fine">Bitrates use the real rANS bitstream. CBR adjusts QP toward the selected target; extreme targets may be outside the model's QP range.</p><p class="fine" id="rate-limit-note"></p></div></section>
+    <section class="panel comparison-metrics hidden" id="comparison-metrics"><h2 id="comparison-metrics-title">Comparison codec · live statistics</h2><div class="metric-grid">
+      <div><strong id="compare-target-actual">—</strong><small>Target / actual · kbps at 30 FPS</small></div>
+      <div><strong id="compare-psnr-y">—</strong><small>Y PSNR · dB</small></div>
+      <div><strong id="compare-psnr-u">—</strong><small>U PSNR · dB</small></div>
+      <div><strong id="compare-psnr-v">—</strong><small>V PSNR · dB</small></div>
+      <div><strong id="compare-qp">—</strong><small id="compare-qp-label">Encoder QP / mode</small></div>
+    </div><p class="fine" id="comparison-note"></p></section>
+  </main>
+  <footer>Interested? Contact <a href="mailto:xihua.sheng@polyu.edu.hk">Dr. Xihua Sheng</a> · <a href="https://xhsheng-ustc.github.io/info/">Homepage</a><br>Neural Codec · ONNX Runtime Web · rANS</footer>
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>
