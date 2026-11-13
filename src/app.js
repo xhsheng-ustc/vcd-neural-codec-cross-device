@@ -244,6 +244,11 @@ worker.onmessage = event => {
   }
   if (message.type === 'error') {
     busy = false;
+    clearInterval(cameraTimer);
+    cameraStream?.getTracks().forEach(track => track.stop());
+    cameraStream = null;
+    camera.srcObject = null;
+    $('source-tag').textContent = 'Camera off';
     status(`Error: ${message.message.split('\n')[0]}`, 'error');
     console.error(message.message);
     setButtons();
@@ -326,11 +331,14 @@ for (const name of ['qpi', 'qpp']) {
 setButtons();
 const initialEncode = params.get('encode') || params.get('backend') || 'webgpu';
 const initialDecode = params.get('decode') || params.get('backend') || 'webgpu';
-const portable = params.get('runtime') !== 'legacy';
+const runtime = ['fast', 'portable', 'legacy'].includes(params.get('runtime'))
+  ? params.get('runtime') : 'fast';
+const portable = runtime === 'portable';
+const fastPortable = runtime === 'fast';
 const mlvcDefaultBackend = resolution === 1080 ? 'wasm' : 'webgpu';
 $('mlvc-encode-backend').value = params.get('mlvcEncode') || mlvcDefaultBackend;
 $('mlvc-decode-backend').value = params.get('mlvcDecode') || mlvcDefaultBackend;
-$('neural-runtime').value = portable ? 'portable' : 'legacy';
+$('neural-runtime').value = runtime;
 if (portable) {
   $('encode-backend').querySelector('option[value="wasm"]').textContent =
     'CPU · WebAssembly exact';
@@ -339,10 +347,13 @@ if (portable) {
 }
 $('encode-backend').value = initialEncode;
 $('decode-backend').value = initialDecode;
-if (initialEncode !== initialDecode && !portable) {
-  status('Mixed GPU / CPU requires cross-device exact mode', 'error');
+if (initialEncode !== initialDecode && runtime === 'legacy') {
+  status('Mixed GPU / CPU requires a cross-device runtime', 'error');
   setButtons();
 } else {
   worker.postMessage({type: 'init', encodeBackend: initialEncode,
-    decodeBackend: initialDecode, resolution, portable});
+    decodeBackend: initialDecode, resolution, portable, fastPortable,
+    entropyPolicy: 'syndrome', featureGrid: 32,
+    featureGridInterval: 32, featureSyndrome: true,
+    featureSyndromeBlocks: 16});
 }

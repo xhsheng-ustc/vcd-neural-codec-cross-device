@@ -1,5 +1,36 @@
 import {RansDecoder, RansEncoder, RansTables} from './rans.js';
 import {PortableModelKernels} from './portable_model_kernels.js';
+
+let stateGrid = 0;
+let featureGrid = 0;
+export function setStateGrid(grid = 0) {
+  if (grid && (!Number.isInteger(grid) || grid < 1))
+    throw new RangeError('Invalid state grid');
+  stateGrid = grid;
+}
+
+export function setFeatureGrid(grid = 0) {
+  if (grid && (!Number.isInteger(grid) || grid < 1))
+    throw new RangeError('Invalid feature grid');
+  featureGrid = grid;
+}
+
+function snapState(tensor) {
+  if (!stateGrid) return tensor;
+  const values = tensor.data;
+  for (let i = 0; i < values.length; i++)
+    values[i] = Math.fround(Math.round(values[i] * stateGrid) / stateGrid);
+  return tensor;
+}
+
+
+function snapFeature(tensor) {
+  if (!featureGrid) return snapState(tensor);
+  const values = tensor.data;
+  for (let i = 0; i < values.length; i++)
+    values[i] = Math.fround(Math.round(values[i] * featureGrid) / featureGrid);
+  return tensor;
+}
 import {packSymbols, quantize, scaleIndexes} from './iframe.js';
 import {add, asTensor, clamp, concatChannels, cropSpatial, flatNumbers,
         padToMultiple, pixelUnshuffle, roundEven, sliceChannels, tensor} from './tensors.js';
@@ -156,7 +187,7 @@ export class PFrameCodec {
     return new PFrameCodec(ort, sessions, runtime, qp, portable);
   }
 
-  setReference(frame) { this.refFrame = frame; this.refFeature = null; }
+  setReference(frame) { this.refFrame = snapState(frame); this.refFeature = null; }
 
   async run(name, ...inputs) {
     const started = this.portable?.profile ? performance.now() : 0;
@@ -242,9 +273,10 @@ export class PFrameCodec {
                                    this.q('decoder_high'));
     const reconstructed = await this.one('recon_generation_net_lpips',
                                          feature, this.q('recon'));
-    this.refFeature = feature;
-    this.refFrame = reconstructed;
-    return reconstructed;
+    this.rawFeature = featureGrid ? Float32Array.from(feature.data) : null;
+    this.refFeature = snapFeature(feature);
+    this.refFrame = snapState(reconstructed);
+    return this.refFrame;
   }
 
   async encode(frame) {

@@ -20,7 +20,7 @@
     <section class="toolbar"><div class="buttons"><button id="camera-start" class="primary">Start camera</button><button id="camera-stop" disabled>Stop camera</button></div></section>
     <section class="lower"><div class="panel settings"><h2>Codec settings</h2>
       <label>Video resolution<select id="resolution"><option value="360">360p · 640 × 360</option><option value="540" selected>540p · 960 × 540</option><option value="720">720p · 1280 × 720</option><option value="1080">1080p · 1920 × 1080</option></select></label>
-      <label>Neural runtime<select id="neural-runtime"><option value="portable" selected>Cross-device exact · experimental</option><option value="legacy">Original floating-point · faster</option></select></label>
+      <label>Neural runtime<select id="neural-runtime"><option value="fast" selected>Fast cross-device · experimental</option><option value="portable">Cross-device exact · W16</option><option value="legacy">Original floating-point</option></select></label>
       <label>Encoder device<select id="encode-backend"><option value="webgpu">GPU · WebGPU</option><option value="wasm">CPU · WebAssembly</option></select></label>
       <label>Decoder device<select id="decode-backend"><option value="webgpu">GPU · WebGPU</option><option value="wasm">CPU · WebAssembly</option></select></label>
       <label id="mlvc-encoder-setting" class="hidden">MLVC encoder device<select id="mlvc-encode-backend"><option value="webgpu">GPU · WebGPU</option><option value="wasm">CPU · WebAssembly</option></select></label>
@@ -33,7 +33,7 @@
       <label>Compare codec<select id="compare-codec"><option value="">Off</option><option value="h264">H.264 / AVC</option><option value="hevc">H.265 / HEVC</option><option value="av1">AV1</option><option value="mlvc">MLVC · PSNR</option><option value="mlvc-perceptual">MLVC · Perceptual</option><option value="vp8">VP8</option></select></label>
       <p class="fine">Our neural QP increases bitrate as it rises. Conventional codec QP works in the opposite direction. Higher resolutions may run below real-time speed.</p>
       <p class="fine">MLVC encoder and decoder devices can be selected separately. At 1080p, running both neural codecs on GPU may exceed available memory.</p>
-      <p class="fine">Cross-device exact mode uses integer WebGPU shaders or WebAssembly for the quantized networks, with shared fixed-point feature operations. The remaining encoder-side networks use ONNX Runtime Web. CPU mode and I frames may run slowly.</p>
+      <p class="fine">Fast cross-device mode uses ONNX networks with bitstream checks for entropy indexes and reference features. The decoder repairs small device differences automatically. It is experimental; other devices or content may exceed the repair limit. CPU inference remains slower than GPU inference.</p>
     </div><div class="panel metrics"><h2>Our codec · live statistics</h2><div class="metric-grid">
       <div><strong id="target-actual">—</strong><small>Target / actual · kbps at 30 FPS</small></div>
       <div><strong id="bitrate">—</strong><small>Actual-time bitrate · kbps</small></div>

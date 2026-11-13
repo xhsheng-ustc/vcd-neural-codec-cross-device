@@ -1,4 +1,5 @@
 import {RansDecoder, RansEncoder, RansTables} from './rans.js';
+import {repairCdfIndex, splitCdfIndexes, cdfStripe} from './cdf_syndrome.js';
 import {PortableModelKernels} from './portable_model_kernels.js';
 import {add, asTensor, clamp, concatChannels, cropSpatial, flatNumbers,
         multiplySpatial, padToMultiple, roundEven, sliceChannels, tensor} from './tensors.js';
@@ -95,13 +96,172 @@ function restoreMasked(symbols, means, step) {
   return tensor(means.dims, yhat);
 }
 
+let fixedCdfIndex = null;
+let fixedCdfTables = null;
+let cdfFamily = 'i';
+let cdfPass = 0;
+let collectCdfStatistics = false;
+let cdfStatistics = [];
+let guardRole = null;
+let guardThreshold = 0;
+let guardPasses = [];
+let captureCdfMaps = false;
+let cdfMaps = [];
+let syndromeRole = null;
+let expectedSyndromes = [];
+let syndromeEvents = [];
+let syndromeDecodeMs = 0;
+let debugExpectedMaps = null;
+let syndromeStripes = 1;
+let syndromeHashed = false;
+
+export function setCdfFrame(family, collect = false, role = null,
+                            passes = [], threshold = 0, captureMaps = false,
+                            checksumRole = null, checksums = [], debugMaps = null,
+                            stripes = 1, hashed = false) {
+  cdfFamily = family;
+  cdfPass = 0;
+  collectCdfStatistics = collect;
+  cdfStatistics = [];
+  guardRole = role;
+  guardThreshold = threshold;
+  guardPasses = passes;
+  captureCdfMaps = captureMaps;
+  cdfMaps = [];
+  syndromeRole = checksumRole;
+  expectedSyndromes = checksums;
+  syndromeEvents = [];
+  syndromeDecodeMs = 0;
+  debugExpectedMaps = debugMaps;
+  syndromeStripes = stripes;
+  syndromeHashed = hashed;
+}
+
+export function getCdfStatistics() { return cdfStatistics; }
+export function getCdfGuardPasses() { return guardPasses; }
+export function getCdfMaps() { return cdfMaps; }
+export function getCdfSyndromeEvents() { return syndromeEvents; }
+export function getCdfSyndromeDecodeMs() { return syndromeDecodeMs; }
+
+export function setFixedCdfTables(tables = null) { fixedCdfTables = tables; }
+
+function nearestBoundaryPositions(scales, constants, limit = 256) {
+  const candidates = [];
+  for (let i = 0; i < scales.data.length; i++) {
+    const value = scales.data[i];
+    if (value <= constants.scale_min || value >= constants.scale_max) continue;
+    const coordinate = F(F(F(Math.log(F(value))) - F(constants.log_scale_min)) *
+      F(constants.log_step_recip));
+    const distance = Math.abs(coordinate - Math.round(coordinate));
+    if (candidates.length < limit) {
+      candidates.push({position: i, distance});
+      candidates.sort((a, b) => a.distance - b.distance);
+    } else if (distance < candidates[limit - 1].distance) {
+      candidates[limit - 1] = {position: i, distance};
+      candidates.sort((a, b) => a.distance - b.distance);
+    }
+  }
+  return candidates.map(x => x.position);
+}
+
+export function setFixedCdfIndex(index = null) {
+  if (index !== null && (!Number.isInteger(index) || index < 0 || index > 127))
+    throw new RangeError('Fixed CDF index must be 0..127');
+  fixedCdfIndex = index;
+}
+
 export function scaleIndexes(scales, constants) {
+  const pass = cdfPass++;
+  const [, channels, height, width] = scales.dims;
+  const plane = height * width;
+  const table = fixedCdfTables?.[cdfFamily]?.[pass];
+  if (table) {
+    if (table.length !== channels) throw new Error('Fixed CDF channel count mismatch');
+    const result = new Uint8Array(scales.data.length);
+    for (let c = 0; c < channels; c++) result.fill(table[c], c * plane, (c + 1) * plane);
+    return result;
+  }
+  if (fixedCdfIndex !== null)
+    return new Uint8Array(scales.data.length).fill(fixedCdfIndex);
   const result = new Uint8Array(scales.data.length);
   for (let i = 0; i < result.length; i++) {
     const scale = F(clamp(scales.data[i], constants.scale_min, constants.scale_max));
-    result[i] = Math.trunc(F(F(F(Math.log(scale)) - F(constants.log_scale_min)) *
-                             F(constants.log_step_recip)));
+    const coordinate = F(F(F(Math.log(scale)) - F(constants.log_scale_min)) *
+      F(constants.log_step_recip));
+    result[i] = Math.trunc(coordinate);
   }
+  if (guardRole === 'encode') {
+    const positions = [];
+    const values = [];
+    for (let i = 0; i < result.length; i++) {
+      const scale = scales.data[i];
+      if (scale <= constants.scale_min || scale >= constants.scale_max) continue;
+      const coordinate = F(F(F(Math.log(F(scale))) - F(constants.log_scale_min)) *
+        F(constants.log_step_recip));
+      if (Math.abs(coordinate - Math.round(coordinate)) <= guardThreshold) {
+        positions.push(i);
+        values.push(result[i]);
+      }
+    }
+    guardPasses.push({positions, values});
+  } else if (guardRole === 'decode') {
+    const correction = guardPasses[pass];
+    if (!correction) throw new Error(`Missing CDF guard pass ${pass}`);
+    for (let n = 0; n < correction.positions.length; n++) {
+      const position = correction.positions[n];
+      if (position >= result.length) throw new Error('CDF guard position out of range');
+      result[position] = correction.values[n];
+    }
+  }
+  if (syndromeRole === 'decode') {
+    const started = performance.now();
+    const stripes = syndromeStripes === 1 ? [result] :
+      splitCdfIndexes(result, syndromeStripes, syndromeHashed);
+    for (let stripe = 0; stripe < stripes.length; stripe++) {
+      const expected = expectedSyndromes[pass * stripes.length + stripe];
+      if (!expected) throw new Error(`Missing CDF syndrome pass ${pass}, stripe ${stripe}`);
+      let event;
+      try {
+        event = repairCdfIndex(stripes[stripe], expected, () =>
+          nearestBoundaryPositions(scales, constants, 512)
+            .filter(position => cdfStripe(position, stripes.length, syndromeHashed) === stripe)
+            .map(position => syndromeHashed ? stripes[stripe].rank[position]
+              : Math.floor(position / stripes.length)));
+      } catch (error) {
+      const reference = debugExpectedMaps?.[pass];
+      if (!reference) throw error;
+      let mismatches = 0;
+      const first = [];
+      for (let i = 0; i < result.length; i++) if (result[i] !== reference[i]) {
+        mismatches++;
+        if (first.length < 8) first.push([i, result[i], reference[i]]);
+      }
+      const ranked = nearestBoundaryPositions(scales, constants, 512);
+      const ranks = first.map(([position]) => ranked.indexOf(position));
+      throw new Error(`${error.message}; pass=${pass}; stripe=${stripe}; mismatches=${mismatches}; first=${JSON.stringify(first)}; candidateRanks=${JSON.stringify(ranks)}`);
+      }
+      if (event.corrected) syndromeEvents.push({pass, stripe, ...event});
+      if (syndromeStripes !== 1) {
+        if (syndromeHashed)
+          for (let i = 0; i < stripes[stripe].length; i++)
+            result[stripes[stripe].positions[i]] = stripes[stripe][i];
+        else
+          for (let i = 0, p = stripe; p < result.length; i++, p += syndromeStripes)
+            result[p] = stripes[stripe][i];
+      }
+    }
+    syndromeDecodeMs += performance.now() - started;
+  }
+  if (collectCdfStatistics) {
+    const means = [];
+    for (let c = 0; c < channels; c++) {
+      let sum = 0;
+      for (let p = 0; p < plane; p++) sum += result[c * plane + p];
+      means.push(Math.round(sum / plane));
+    }
+    cdfStatistics.push({family: cdfFamily, pass, means});
+  }
+  if (captureCdfMaps) cdfMaps.push(Uint8Array.from(result));
   return result;
 }
 
