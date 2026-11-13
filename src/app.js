@@ -3,7 +3,7 @@ const SIZES = {360: [640, 360], 540: [960, 540],
 const $ = id => document.getElementById(id);
 const isMlvcCodec = codec => codec === 'mlvc' || codec === 'mlvc-perceptual';
 const params = new URL(location.href).searchParams;
-const resolution = SIZES[params.get('resolution')] ? Number(params.get('resolution')) : 540;
+const resolution = SIZES[params.get('resolution')] ? Number(params.get('resolution')) : 360;
 const [WIDTH, HEIGHT] = SIZES[resolution];
 const input = $('input-view'), output = $('output-view');
 input.width = output.width = WIDTH;
@@ -350,3 +350,4 @@ if (initialEncode !== initialDecode && runtime === 'legacy') {
     featureGridInterval: 32, featureSyndrome: true,
     featureSyndromeBlocks: 16});
 }
+setComparison();

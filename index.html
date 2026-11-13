@@ -19,7 +19,7 @@
     </section>
     <section class="toolbar"><div class="buttons"><button id="camera-start" class="primary">Start camera</button><button id="camera-stop" disabled>Stop camera</button></div></section>
     <section class="lower"><div class="panel settings"><h2>Codec settings</h2>
-      <label>Video resolution<select id="resolution"><option value="360">360p · 640 × 360</option><option value="540" selected>540p · 960 × 540</option><option value="720">720p · 1280 × 720</option><option value="1080">1080p · 1920 × 1080</option></select></label>
+      <label>Video resolution<select id="resolution"><option value="360" selected>360p · 640 × 360</option><option value="540">540p · 960 × 540</option><option value="720">720p · 1280 × 720</option><option value="1080">1080p · 1920 × 1080</option></select></label>
       <label>Neural runtime<select id="neural-runtime"><option value="fast" selected>Fast cross-device · experimental</option><option value="legacy">Original floating-point</option></select></label>
       <label>Encoder device<select id="encode-backend"><option value="webgpu">GPU · WebGPU</option><option value="wasm">CPU · WebAssembly</option></select></label>
       <label>Decoder device<select id="decode-backend"><option value="webgpu">GPU · WebGPU</option><option value="wasm">CPU · WebAssembly</option></select></label>
@@ -30,7 +30,7 @@
       <label id="qpi-setting" class="hidden">I-frame QP <output id="qpi-value">63</output><input id="qpi" type="range" min="0" max="63" value="63"></label>
       <label id="qpp-setting" class="hidden">P-frame QP <output id="qpp-value">63</output><input id="qpp" type="range" min="0" max="63" value="63"></label>
       <label>I-frame interval (frames)<input id="period" type="number" min="1" max="3000" value="150"></label>
-      <label>Compare codec<select id="compare-codec"><option value="">Off</option><option value="h264">H.264 / AVC</option><option value="hevc">H.265 / HEVC</option><option value="av1">AV1</option><option value="mlvc">MLVC · PSNR</option><option value="mlvc-perceptual">MLVC · Perceptual</option><option value="vp8">VP8</option></select></label>
+      <label>Compare codec<select id="compare-codec"><option value="">Off</option><option value="h264">H.264 / AVC</option><option value="hevc">H.265 / HEVC</option><option value="av1">AV1</option><option value="mlvc">MLVC · PSNR</option><option value="mlvc-perceptual" selected>MLVC · Perceptual</option><option value="vp8">VP8</option></select></label>
       <p class="fine">Our neural QP increases bitrate as it rises. Conventional codec QP works in the opposite direction. Higher resolutions may run below real-time speed.</p>
       <p class="fine">MLVC encoder and decoder devices can be selected separately. At 1080p, running both neural codecs on GPU may exceed available memory.</p>
     </div><div class="panel metrics"><h2>Our codec · live statistics</h2><div class="metric-grid">
