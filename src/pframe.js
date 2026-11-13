@@ -1,5 +1,4 @@
 import {RansDecoder, RansEncoder, RansTables} from './rans.js';
-import {PortableModelKernels} from './portable_model_kernels.js';
 
 let stateGrid = 0;
 let featureGrid = 0;
@@ -183,7 +182,8 @@ export class PFrameCodec {
       log(`loaded p_${name}`);
     }
     const portable = portableBackend
-      ? await PortableModelKernels.create('p', portableBackend) : null;
+      ? await (await import('./portable_model_kernels.js')).PortableModelKernels
+        .create('p', portableBackend) : null;
     return new PFrameCodec(ort, sessions, runtime, qp, portable);
   }
 

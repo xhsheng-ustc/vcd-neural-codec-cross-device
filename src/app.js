@@ -331,20 +331,13 @@ for (const name of ['qpi', 'qpp']) {
 setButtons();
 const initialEncode = params.get('encode') || params.get('backend') || 'webgpu';
 const initialDecode = params.get('decode') || params.get('backend') || 'webgpu';
-const runtime = ['fast', 'portable', 'legacy'].includes(params.get('runtime'))
+const runtime = ['fast', 'legacy'].includes(params.get('runtime'))
   ? params.get('runtime') : 'fast';
-const portable = runtime === 'portable';
 const fastPortable = runtime === 'fast';
 const mlvcDefaultBackend = resolution === 1080 ? 'wasm' : 'webgpu';
 $('mlvc-encode-backend').value = params.get('mlvcEncode') || mlvcDefaultBackend;
 $('mlvc-decode-backend').value = params.get('mlvcDecode') || mlvcDefaultBackend;
 $('neural-runtime').value = runtime;
-if (portable) {
-  $('encode-backend').querySelector('option[value="wasm"]').textContent =
-    'CPU · WebAssembly exact';
-  $('decode-backend').querySelector('option[value="wasm"]').textContent =
-    'CPU · WebAssembly exact';
-}
 $('encode-backend').value = initialEncode;
 $('decode-backend').value = initialDecode;
 if (initialEncode !== initialDecode && runtime === 'legacy') {
@@ -352,7 +345,7 @@ if (initialEncode !== initialDecode && runtime === 'legacy') {
   setButtons();
 } else {
   worker.postMessage({type: 'init', encodeBackend: initialEncode,
-    decodeBackend: initialDecode, resolution, portable, fastPortable,
+    decodeBackend: initialDecode, resolution, portable: false, fastPortable,
     entropyPolicy: 'syndrome', featureGrid: 32,
     featureGridInterval: 32, featureSyndrome: true,
     featureSyndromeBlocks: 16});

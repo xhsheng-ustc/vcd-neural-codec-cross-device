@@ -1,6 +1,5 @@
 import {RansDecoder, RansEncoder, RansTables} from './rans.js';
 import {repairCdfIndex, splitCdfIndexes, cdfStripe} from './cdf_syndrome.js';
-import {PortableModelKernels} from './portable_model_kernels.js';
 import {add, asTensor, clamp, concatChannels, cropSpatial, flatNumbers,
         multiplySpatial, padToMultiple, roundEven, sliceChannels, tensor} from './tensors.js';
 
@@ -324,7 +323,8 @@ export class IFrameCodec {
       log(`loaded i_${name}`);
     }
     const portable = portableBackend
-      ? await PortableModelKernels.create('i', portableBackend) : null;
+      ? await (await import('./portable_model_kernels.js')).PortableModelKernels
+        .create('i', portableBackend) : null;
     return new IFrameCodec(ort, sessions, runtime, qp, portable);
   }
 

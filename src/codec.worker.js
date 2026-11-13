@@ -52,7 +52,7 @@ async function initialize(requestedEncode, requestedDecode, resolution,
   if (!['webgpu', 'wasm'].includes(requestedEncode) ||
       !['webgpu', 'wasm'].includes(requestedDecode)) throw new Error('Unsupported compute device');
   if (requestedEncode !== requestedDecode && !portable && !fastPortable && !allowExperimentalMixed) {
-    throw new Error('Mixed GPU/CPU execution requires the portable fixed-point browser codec; the current floating-point ONNX models diverge after P frames.');
+    throw new Error('Mixed GPU/CPU execution requires fast cross-device mode.');
   }
   [width, height, modelHeight] = SIZES[resolution];
   fastEntropyPolicy = fastPortable ? entropyPolicy : null;
