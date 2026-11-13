@@ -22,9 +22,9 @@
       <label>Video resolution<select id="resolution"><option value="360" selected>360p · 640 × 360</option><option value="540">540p · 960 × 540</option><option value="720">720p · 1280 × 720</option><option value="1080">1080p · 1920 × 1080</option></select></label>
       <label>Neural runtime<select id="neural-runtime"><option value="fast" selected>Fast cross-device · experimental</option><option value="legacy">Original floating-point</option></select></label>
       <label>Encoder device<select id="encode-backend"><option value="webgpu">GPU · WebGPU</option><option value="wasm">CPU · WebAssembly</option></select></label>
-      <label>Decoder device<select id="decode-backend"><option value="webgpu">GPU · WebGPU</option><option value="wasm">CPU · WebAssembly</option></select></label>
+      <label>Decoder device<select id="decode-backend"><option value="webgpu">GPU · WebGPU</option><option value="wasm" selected>CPU · WebAssembly</option></select></label>
       <label id="mlvc-encoder-setting" class="hidden">MLVC encoder device<select id="mlvc-encode-backend"><option value="webgpu">GPU · WebGPU</option><option value="wasm">CPU · WebAssembly</option></select></label>
-      <label id="mlvc-decoder-setting" class="hidden">MLVC decoder device<select id="mlvc-decode-backend"><option value="webgpu">GPU · WebGPU</option><option value="wasm">CPU · WebAssembly</option></select></label>
+      <label id="mlvc-decoder-setting" class="hidden">MLVC decoder device<select id="mlvc-decode-backend"><option value="webgpu">GPU · WebGPU</option><option value="wasm" selected>CPU · WebAssembly</option></select></label>
       <label>Rate mode<select id="rate-mode"><option value="cq">Fixed QP</option><option value="cbr" selected>CBR · target bitrate</option></select></label>
       <label id="target-setting">Target bitrate (kbps)<input id="target-kbps" type="number" min="25" max="20000" step="25" value="100"></label>
       <label id="qpi-setting" class="hidden">I-frame QP <output id="qpi-value">63</output><input id="qpi" type="range" min="0" max="63" value="63"></label>

@@ -330,13 +330,12 @@ for (const name of ['qpi', 'qpp']) {
 
 setButtons();
 const initialEncode = params.get('encode') || params.get('backend') || 'webgpu';
-const initialDecode = params.get('decode') || params.get('backend') || 'webgpu';
+const initialDecode = params.get('decode') || params.get('backend') || 'wasm';
 const runtime = ['fast', 'legacy'].includes(params.get('runtime'))
   ? params.get('runtime') : 'fast';
 const fastPortable = runtime === 'fast';
-const mlvcDefaultBackend = resolution === 1080 ? 'wasm' : 'webgpu';
-$('mlvc-encode-backend').value = params.get('mlvcEncode') || mlvcDefaultBackend;
-$('mlvc-decode-backend').value = params.get('mlvcDecode') || mlvcDefaultBackend;
+$('mlvc-encode-backend').value = params.get('mlvcEncode') || 'webgpu';
+$('mlvc-decode-backend').value = params.get('mlvcDecode') || 'wasm';
 $('neural-runtime').value = runtime;
 $('encode-backend').value = initialEncode;
 $('decode-backend').value = initialDecode;
